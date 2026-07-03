@@ -1,0 +1,692 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>วริษฐา เพลียน้อย — Player Card</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@300;400;500;600&family=IBM+Plex+Sans+Thai+Looped:wght@500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg: #090d12;
+    --surface: #121a22;
+    --surface-2: #17212b;
+    --surface-3: #1d2a36;
+    --line: #223040;
+    --mint: #34d399;
+    --mint-dim: #a78bfa;
+    --coral: #34d399;
+    --amber: #a78bfa;
+    --text: #e8eef2;
+    --muted: #6b7785;
+  }
+
+  *{ box-sizing: border-box; margin:0; padding:0; }
+
+  html, body{ height: 100%; }
+
+  body{
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'IBM Plex Sans Thai', sans-serif;
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 40px 16px;
+    line-height: 1.6;
+    overflow-x: hidden;
+    position: relative;
+  }
+
+  .grid-bg{
+    position: fixed;
+    inset: 0;
+    background-image:
+      linear-gradient(rgba(52,211,153,0.05) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(52,211,153,0.05) 1px, transparent 1px);
+    background-size: 42px 42px;
+    mask-image: radial-gradient(circle at 50% 40%, black, transparent 75%);
+    animation: drift 40s linear infinite;
+    z-index: 0;
+  }
+
+  @keyframes drift{
+    from{ background-position: 0 0, 0 0; }
+    to{ background-position: 420px 0, 0 420px; }
+  }
+
+  .glow-a, .glow-b{
+    position: fixed;
+    width: 380px;
+    height: 380px;
+    border-radius: 50%;
+    filter: blur(90px);
+    z-index: 0;
+    pointer-events: none;
+  }
+  .glow-a{ top: -100px; left: -100px; background: rgba(52,211,153,0.10); }
+  .glow-b{ bottom: -120px; right: -100px; background: rgba(167,139,250,0.10); }
+
+  .terminal{
+    position: relative;
+    z-index: 1;
+    width: 100%;
+    max-width: 660px;
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    box-shadow: 0 30px 90px -20px rgba(0,0,0,0.7);
+    overflow: hidden;
+    opacity: 0;
+    animation: fadeIn 0.6s ease forwards;
+  }
+
+  @keyframes fadeIn{ to{ opacity:1; } }
+
+  .spotlight{
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    background: radial-gradient(260px circle at var(--mx,50%) var(--my,0%), rgba(52,211,153,0.06), transparent 70%);
+    z-index: 2;
+  }
+
+  .titlebar{
+    position: relative;
+    z-index: 3;
+    display:flex;
+    align-items:center;
+    gap: 10px;
+    padding: 12px 16px;
+    background: var(--surface-2);
+    border-bottom: 1px solid var(--line);
+  }
+
+  .dot{ width:11px; height:11px; border-radius:50%; }
+  .dot.red{ background:#ff5f56; }
+  .dot.yellow{ background:#ffbd2e; }
+  .dot.green{ background:#27c93f; }
+
+  .titlebar span.path{
+    margin-left: 6px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    color: var(--muted);
+  }
+
+  .titlebar .live{
+    margin-left: auto;
+    display:flex;
+    align-items:center;
+    gap:6px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10.5px;
+    color: var(--mint);
+    letter-spacing: 0.05em;
+  }
+  .titlebar .live .pulse{
+    width:6px; height:6px; border-radius:50%;
+    background: var(--mint);
+    animation: pulse 1.8s infinite;
+  }
+
+  .screen{
+    position: relative;
+    z-index: 3;
+    padding: 26px 26px 30px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 13px;
+  }
+
+  .boot{ min-height: 20px; }
+  .boot-line{
+    color: var(--muted);
+    opacity: 0;
+    animation: fadeLine 0.35s ease forwards;
+  }
+  .boot-line b{ color: var(--mint); font-weight: 500; }
+  @keyframes fadeLine{ to{ opacity:1; } }
+
+  .prompt{ color: var(--mint); }
+
+  .output{
+    margin-top: 18px;
+    opacity: 0;
+  }
+  .output.show{
+    animation: reveal 0.5s ease forwards;
+  }
+  @keyframes reveal{ to{ opacity: 1; } }
+
+  .id-header{
+    display:flex;
+    align-items:center;
+    gap: 16px;
+    margin-bottom: 18px;
+    font-family: 'IBM Plex Sans Thai', sans-serif;
+  }
+
+  .avatar-flip{
+    flex-shrink:0;
+    width: 60px;
+    height: 60px;
+    perspective: 600px;
+    cursor: pointer;
+  }
+  .avatar-inner{
+    position: relative;
+    width:100%; height:100%;
+    transition: transform 0.6s cubic-bezier(.4,.2,.2,1);
+    transform-style: preserve-3d;
+  }
+  .avatar-flip.flipped .avatar-inner{ transform: rotateY(180deg); }
+  .avatar-face{
+    position:absolute; inset:0;
+    border-radius: 12px;
+    display:flex; align-items:center; justify-content:center;
+    backface-visibility: hidden;
+    font-weight: 700;
+  }
+  .avatar-face.front{
+    background: linear-gradient(135deg, var(--mint), var(--mint-dim));
+    color:#000;
+    font-size: 21px;
+  }
+  .avatar-face.back{
+    background: var(--surface-3);
+    border: 1px solid var(--mint-dim);
+    color: var(--mint);
+    transform: rotateY(180deg);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    flex-direction: column;
+    gap: 2px;
+    text-align: center;
+    padding: 4px;
+  }
+  .avatar-hint{
+    font-size: 9px;
+    color: var(--muted);
+    margin-top: 3px;
+    font-family: 'JetBrains Mono', monospace;
+  }
+
+  .id-header h1{
+    font-family: 'IBM Plex Sans Thai Looped', sans-serif;
+    font-size: 21px;
+    font-weight: 600;
+    color: var(--text);
+    letter-spacing: 0.01em;
+  }
+
+  .id-header .nickname{
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    color: var(--mint);
+    margin-top: 2px;
+  }
+
+  .tabs{
+    display:flex;
+    gap: 4px;
+    border-bottom: 1px solid var(--line);
+    margin-bottom: 18px;
+    font-family: 'IBM Plex Sans Thai', sans-serif;
+  }
+
+  .tab-btn{
+    background: none;
+    border: none;
+    color: var(--muted);
+    font-family: 'IBM Plex Sans Thai Looped', sans-serif;
+    font-size: 13.5px;
+    font-weight: 500;
+    padding: 8px 4px;
+    margin-right: 18px;
+    cursor: pointer;
+    position: relative;
+    transition: color 0.2s ease;
+  }
+  .tab-btn:hover{ color: var(--text); }
+  .tab-btn.active{ color: var(--mint); }
+  .tab-btn.active::after{
+    content:'';
+    position:absolute;
+    left:0; right:0; bottom:-1px;
+    height: 2px;
+    background: var(--mint);
+    border-radius: 2px;
+  }
+
+  .panel{ display:none; animation: reveal 0.35s ease forwards; }
+  .panel.active{ display:block; }
+
+  .field{
+    display: grid;
+    grid-template-columns: 108px 1fr;
+    gap: 10px;
+    padding: 7px 0;
+    font-family: 'IBM Plex Sans Thai', sans-serif;
+    font-size: 14px;
+  }
+
+  .field .key{
+    color: var(--muted);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 0.03em;
+    text-transform: uppercase;
+    padding-top: 2px;
+  }
+
+  .field .val{ color: var(--text); }
+
+  .stat{
+    margin-bottom: 14px;
+  }
+  .stat-top{
+    display:flex;
+    justify-content: space-between;
+    font-family: 'IBM Plex Sans Thai', sans-serif;
+    font-size: 12.5px;
+    margin-bottom: 5px;
+  }
+  .stat-top .label{ color: var(--text); }
+  .stat-top .value{ color: var(--mint); font-family:'JetBrains Mono', monospace; font-size: 11px; }
+  .bar-track{
+    height: 7px;
+    background: var(--surface-3);
+    border-radius: 20px;
+    overflow: hidden;
+    border: 1px solid var(--line);
+  }
+  .bar-fill{
+    height: 100%;
+    width: 0%;
+    border-radius: 20px;
+    background: linear-gradient(90deg, var(--mint-dim), var(--mint));
+    transition: width 1s cubic-bezier(.2,.8,.2,1);
+  }
+
+  .tags{ display:flex; flex-wrap: wrap; gap: 8px; }
+
+  .tag{
+    background: var(--surface-2);
+    border: 1px solid var(--line);
+    padding: 5px 12px;
+    border-radius: 20px;
+    font-size: 12.5px;
+    color: var(--text);
+    cursor: default;
+    transition: transform 0.15s ease, border-color 0.15s ease, background 0.15s ease;
+  }
+  .tag:hover{
+    transform: translateY(-2px);
+    border-color: var(--mint);
+    background: var(--surface-3);
+  }
+
+  .anime-card{
+    margin-top: 14px;
+    background: var(--surface-2);
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    padding: 12px 14px;
+    display:flex;
+    gap: 12px;
+    align-items:center;
+  }
+  .anime-card .icon{
+    font-size: 22px;
+    flex-shrink:0;
+  }
+  .anime-card .name{
+    font-family:'IBM Plex Sans Thai Looped', sans-serif;
+    font-size: 15px;
+    font-weight: 600;
+  }
+  .anime-card .tagline{
+    font-family:'JetBrains Mono', monospace;
+    font-size: 10.5px;
+    color: var(--muted);
+    margin-top: 2px;
+  }
+
+  .mission-box{
+    background: rgba(167,139,250,0.06);
+    border: 1px solid rgba(167,139,250,0.35);
+    border-radius: 10px;
+    padding: 16px;
+    font-family: 'IBM Plex Sans Thai', sans-serif;
+  }
+  .mission-box .label{
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10.5px;
+    letter-spacing: 0.08em;
+    color: var(--coral);
+    text-transform: uppercase;
+    margin-bottom: 6px;
+  }
+  .mission-box .goal{ font-family: 'IBM Plex Sans Thai Looped', sans-serif; font-size: 17px; font-weight: 600; letter-spacing: 0.01em; }
+  .mission-box .sub{ margin-top: 4px; font-size: 12px; color: var(--muted); }
+
+  .survive-row{
+    margin-top: 14px;
+    display:flex;
+    align-items:center;
+    gap: 12px;
+  }
+  .survive-row .bar-track{ flex:1; height: 9px; }
+  .survive-row .bar-fill{ background: linear-gradient(90deg, var(--coral), var(--amber)); }
+  .survive-pct{
+    font-family:'JetBrains Mono', monospace;
+    font-size: 12px;
+    color: var(--amber);
+    min-width: 38px;
+    text-align: right;
+  }
+  .boost-btn{
+    margin-top: 12px;
+    background: var(--surface-2);
+    border: 1px solid var(--coral);
+    color: var(--coral);
+    font-family: 'IBM Plex Sans Thai', sans-serif;
+    font-size: 12.5px;
+    padding: 7px 14px;
+    border-radius: 20px;
+    cursor: pointer;
+    transition: background 0.15s ease, transform 0.1s ease;
+  }
+  .boost-btn:hover{ background: rgba(167,139,250,0.1); }
+  .boost-btn:active{ transform: scale(0.96); }
+
+  .contact-card{
+    background: var(--surface-2);
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    padding: 14px 16px;
+  }
+  .contact-row{
+    display:flex;
+    align-items:center;
+    justify-content: space-between;
+    gap: 10px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12.5px;
+  }
+  .contact-row .mail{ color: var(--mint); }
+  .copy-btn{
+    background: none;
+    border: 1px solid var(--line);
+    color: var(--muted);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    padding: 5px 10px;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: border-color 0.15s ease, color 0.15s ease;
+  }
+  .copy-btn:hover{ border-color: var(--mint); color: var(--mint); }
+  .copy-btn.copied{ border-color: var(--mint); color: var(--mint); }
+
+  .status-line{
+    margin-top: 12px;
+    display:flex;
+    align-items:center;
+    gap: 6px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    color: var(--muted);
+  }
+  .status-line .pulse{
+    width: 7px; height:7px; border-radius:50%;
+    background: var(--mint);
+    animation: pulse 1.8s infinite;
+  }
+
+  @keyframes pulse{
+    0%{ box-shadow: 0 0 0 0 rgba(52,211,153,0.5); }
+    70%{ box-shadow: 0 0 0 6px rgba(52,211,153,0); }
+    100%{ box-shadow: 0 0 0 0 rgba(52,211,153,0); }
+  }
+
+  .hint{
+    margin-top: 18px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10.5px;
+    color: var(--muted);
+    text-align: center;
+    letter-spacing: 0.02em;
+  }
+
+  @media (max-width: 480px){
+    .field{ grid-template-columns: 90px 1fr; }
+    .id-header h1{ font-size: 17px; }
+    .tab-btn{ margin-right: 12px; font-size: 12px; }
+  }
+
+  @media (prefers-reduced-motion: reduce){
+    *{ animation: none !important; transition: none !important; }
+  }
+</style>
+</head>
+<body>
+
+  <div class="grid-bg"></div>
+  <div class="glow-a"></div>
+  <div class="glow-b"></div>
+
+  <div class="terminal" id="terminal">
+    <div class="spotlight" id="spotlight"></div>
+    <div class="titlebar">
+      <div class="dot red"></div>
+      <div class="dot yellow"></div>
+      <div class="dot green"></div>
+      <span class="path">bam@it-freshman — zsh — ~/intro</span>
+      <span class="live"><span class="pulse"></span>ONLINE</span>
+    </div>
+
+    <div class="screen">
+      <div class="boot" id="boot"></div>
+
+      <div class="output" id="output">
+        <div class="id-header">
+          <div class="avatar-flip" id="avatarFlip" title="คลิกเพื่อพลิกการ์ด">
+            <div class="avatar-inner">
+              <div class="avatar-face front">แบม</div>
+              <div class="avatar-face back">
+                <div>LV.19</div>
+                <div>IT STUDENT</div>
+                <div class="avatar-hint">คลิกอีกครั้ง</div>
+              </div>
+            </div>
+          </div>
+          <div>
+            <h1>วริษฐา เพลียน้อย</h1>
+            <div class="nickname">// ชื่อเล่น: แบม</div>
+          </div>
+        </div>
+
+        <div class="tabs">
+          <button class="tab-btn active" data-tab="status">สถานะ</button>
+          <button class="tab-btn" data-tab="interests">ความสนใจ</button>
+          <button class="tab-btn" data-tab="mission">เป้าหมาย</button>
+          <button class="tab-btn" data-tab="contact">ติดต่อ</button>
+        </div>
+
+        <div class="panel active" data-panel="status">
+          <div class="field"><div class="key">อายุ</div><div class="val">19 ปี</div></div>
+          <div class="field"><div class="key">สาขา</div><div class="val">เทคโนโลยีสารสนเทศ</div></div>
+
+          <div style="margin-top:18px;">
+            <div class="stat">
+              <div class="stat-top"><span class="label">ทักษะ IT</span><span class="value" id="v1">0/100</span></div>
+              <div class="bar-track"><div class="bar-fill" id="b1"></div></div>
+            </div>
+            <div class="stat">
+              <div class="stat-top"><span class="label">พลังต้านง่วง</span><span class="value" id="v2">0/100</span></div>
+              <div class="bar-track"><div class="bar-fill" id="b2"></div></div>
+            </div>
+            <div class="stat">
+              <div class="stat-top"><span class="label">IQ เกม</span><span class="value" id="v3">0/100</span></div>
+              <div class="bar-track"><div class="bar-fill" id="b3"></div></div>
+            </div>
+            <div class="stat">
+              <div class="stat-top"><span class="label">ความหิว</span><span class="value" id="v4">0/100</span></div>
+              <div class="bar-track"><div class="bar-fill" id="b4"></div></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="panel" data-panel="interests">
+          <div class="field">
+            <div class="key">สิ่งที่ชอบ</div>
+            <div class="val">
+              <div class="tags">
+                <span class="tag">🎬 ดูอนิเมะ</span>
+                <span class="tag">🎮 เล่นเกม</span>
+                <span class="tag">🍜 กิน</span>
+                <span class="tag">😴 ง่วงตลอดเวลา</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="anime-card">
+            <div class="icon">🎮</div>
+            <div>
+              <div class="name">Free Fire</div>
+              <div class="tagline">// เกมที่เล่นประจำ — Level 20</div>
+            </div>
+          </div>
+
+          <div class="anime-card">
+            <div class="icon">🗡️</div>
+            <div>
+              <div class="name">Sakamoto Days</div>
+              <div class="tagline">// อนิเมะที่ชอบที่สุด</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="panel" data-panel="mission">
+          <div class="mission-box">
+            <div class="label">// current mission</div>
+            <div class="goal">เรียนสารสนเทศให้รอด</div>
+            <div class="sub">เหมือนซากาโมโตะต้องคุมน้ำหนักให้รอด เราก็ต้องคุมเกรดให้รอดเหมือนกัน</div>
+
+            <div class="label" style="margin-top:14px;">// next mission</div>
+            <div class="goal">เข้ามหาลัยที่หวังไว้ให้ได้</div>
+
+            <div class="survive-row">
+              <div class="bar-track"><div class="bar-fill" id="surviveBar" style="width:42%"></div></div>
+              <div class="survive-pct" id="survivePct">42%</div>
+            </div>
+            <button class="boost-btn" id="boostBtn">+ เพิ่มพลังใจ</button>
+          </div>
+        </div>
+
+        <div class="panel" data-panel="contact">
+          <div class="contact-card">
+            <div class="contact-row">
+              <span class="mail" id="mailText">waritthaa50@gmail.com</span>
+              <button class="copy-btn" id="copyBtn">คัดลอก</button>
+            </div>
+            <div class="status-line"><span class="pulse"></span> status: กำลังพยายามรอด</div>
+          </div>
+        </div>
+
+      </div>
+
+      <div class="hint" id="hint" style="opacity:0;">คลิกการ์ดเพื่อพลิก • คลิก + เพิ่มพลังใจ</div>
+    </div>
+  </div>
+
+<script>
+  const bootLines = [
+    '<span class="prompt">bam@it-freshman ~ %</span> ./intro.sh --whoami',
+    'loading profile<b>...</b> ok',
+    'scanning interests<b>...</b> ok',
+    'unlocking mission log<b>...</b> ok'
+  ];
+
+  const bootEl = document.getElementById('boot');
+  const outputEl = document.getElementById('output');
+  const hintEl = document.getElementById('hint');
+
+  bootLines.forEach((line, i) => {
+    const div = document.createElement('div');
+    div.className = 'boot-line';
+    div.innerHTML = line;
+    div.style.animationDelay = (i * 0.28) + 's';
+    bootEl.appendChild(div);
+  });
+
+  setTimeout(() => {
+    outputEl.classList.add('show');
+    animateStats();
+    setTimeout(() => { hintEl.style.transition = 'opacity 0.6s ease'; hintEl.style.opacity = '1'; }, 400);
+  }, bootLines.length * 280 + 150);
+
+  function animateStats(){
+    const targets = { b1:8, b2:18, b3:44, b4:97 };
+    Object.keys(targets).forEach(id => {
+      const bar = document.getElementById(id);
+      const val = document.getElementById('v' + id.slice(1));
+      requestAnimationFrame(() => { bar.style.width = targets[id] + '%'; });
+      let cur = 0;
+      const step = () => {
+        cur += Math.max(1, Math.round((targets[id]-cur)/6));
+        if(cur >= targets[id]){ cur = targets[id]; val.textContent = cur + '/100'; return; }
+        val.textContent = cur + '/100';
+        requestAnimationFrame(step);
+      };
+      setTimeout(step, 200);
+    });
+  }
+
+  const terminal = document.getElementById('terminal');
+  const spotlight = document.getElementById('spotlight');
+  terminal.addEventListener('mousemove', (e) => {
+    const rect = terminal.getBoundingClientRect();
+    const x = ((e.clientX - rect.left) / rect.width) * 100;
+    const y = ((e.clientY - rect.top) / rect.height) * 100;
+    spotlight.style.setProperty('--mx', x + '%');
+    spotlight.style.setProperty('--my', y + '%');
+  });
+
+  const avatarFlip = document.getElementById('avatarFlip');
+  avatarFlip.addEventListener('click', () => avatarFlip.classList.toggle('flipped'));
+
+  document.querySelectorAll('.tab-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+      document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+      btn.classList.add('active');
+      document.querySelector('.panel[data-panel="' + btn.dataset.tab + '"]').classList.add('active');
+    });
+  });
+
+  let survive = 42;
+  const surviveBar = document.getElementById('surviveBar');
+  const survivePct = document.getElementById('survivePct');
+  document.getElementById('boostBtn').addEventListener('click', () => {
+    survive = Math.min(99, survive + Math.floor(Math.random()*8) + 3);
+    surviveBar.style.width = survive + '%';
+    survivePct.textContent = survive + '%';
+  });
+
+  const copyBtn = document.getElementById('copyBtn');
+  copyBtn.addEventListener('click', async () => {
+    const mail = document.getElementById('mailText').textContent;
+    try{
+      await navigator.clipboard.writeText(mail);
+    }catch(e){}
+    copyBtn.textContent = 'คัดลอกแล้ว';
+    copyBtn.classList.add('copied');
+    setTimeout(() => { copyBtn.textContent = 'คัดลอก'; copyBtn.classList.remove('copied'); }, 1600);
+  });
+</script>
+
+</body>
+</html>
